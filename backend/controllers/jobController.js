@@ -70,27 +70,49 @@ export const postJob = catchAsyncErrors(async (req, res, next) => {
 
 export const getAllJobs = catchAsyncErrors(async (req, res, next) => {
   const { city, niche, searchKeyword } = req.query;
+
   const query = {};
+
+  // ✅ City filter
   if (city) {
-    query.location = city;
+    query.location = { $regex: new RegExp(city, "i") };
   }
+
+  // ✅ Niche filter
   if (niche) {
-    query.jobNiche = niche;
+    query.jobNiche = { $regex: new RegExp(niche, "i") };
   }
+
+  // ✅ Keyword Search
   if (searchKeyword) {
     query.$or = [
-      { title: { $regex: searchKeyword, $options: "i" } },
-      { companyName: { $regex: searchKeyword, $options: "i" } },
-      { introduction: { $regex: searchKeyword, $options: "i" } },
+      { title: { $regex: new RegExp(searchKeyword, "i") } },
+      { companyName: { $regex: new RegExp(searchKeyword, "i") } },
+      { introduction: { $regex: new RegExp(searchKeyword, "i") } },
     ];
   }
-  const jobs = await Job.find(query);
-  res.status(200).json({
-    success: true,
-    jobs,
-    count: jobs.length,
-  });
+
+  try {
+    const jobs = await Job.find(query);
+
+    if (!jobs.length) {
+      return res.status(200).json({
+        success: true,
+        jobs: [],
+        message: "No matching jobs found.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      jobs,
+      count: jobs.length,
+    });
+  } catch (error) {
+    next(new ErrorHandler("Failed to load jobs", 500));
+  }
 });
+
 
 export const getMyJobs = catchAsyncErrors(async (req, res, next) => {
   const myJobs = await Job.find({ postedBy: req.user._id });

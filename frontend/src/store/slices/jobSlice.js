@@ -110,48 +110,59 @@ export const fetchJobs =
       dispatch(jobSlice.actions.requestForAllJobs());
       let link = "http://localhost:4000/api/v1/job/getall?";
       let queryParams = [];
+
+      // ✅ Search keyword handle
       if (searchKeyword) {
-        queryParams.push(`searchKeyword=${searchKeyword}`);
+        queryParams.push(`searchKeyword=${encodeURIComponent(searchKeyword)}`);
       }
+
+      // ✅ City filter
       if (city && city !== "All") {
-        queryParams.push(`city=${city}`);
+        queryParams.push(`city=${encodeURIComponent(city)}`);
       }
 
-      /***************************************************/
-      /* BUG No.3 */
-      if (city && city === "All") {
-        queryParams = [];
-        if (searchKeyword) {
-          queryParams.push(`searchKeyword=${searchKeyword}`);
-        }
+      // ✅ Niche filter
+      if (niche && niche !== "All") {
+        queryParams.push(`niche=${encodeURIComponent(niche)}`);
       }
-      /***************************************************/
-
-      if (niche) {
-        queryParams.push(`niche=${niche}`);
-      }
-
-      /***************************************************/
-      /* BUG No.4 */
-      if (niche && niche === "All") {
-        queryParams = [];
-        if (searchKeyword) {
-          queryParams.push(`searchKeyword=${searchKeyword}`);
-        }
-        if (city && city !== "All") {
-          queryParams.push(`city=${city}`);
-        }
-      }
-      /***************************************************/
 
       link += queryParams.join("&");
+
+      // ✅ API call
       const response = await axios.get(link, { withCredentials: true });
+
       dispatch(jobSlice.actions.successForAllJobs(response.data.jobs));
       dispatch(jobSlice.actions.clearAllErrors());
     } catch (error) {
-      dispatch(jobSlice.actions.failureForAllJobs(error.response.data.message));
+      dispatch(
+        jobSlice.actions.failureForAllJobs(
+          error.response?.data?.message || "Failed to load jobs."
+        )
+      );
     }
   };
+
+// ✅ Reset Filter Functionality
+export const resetFilters = () => async (dispatch) => {
+  try {
+    dispatch(jobSlice.actions.requestForAllJobs());
+    const link = "http://localhost:4000/api/v1/job/getall";
+
+    // ✅ API call for all jobs
+    const response = await axios.get(link, { withCredentials: true });
+
+    dispatch(jobSlice.actions.successForAllJobs(response.data.jobs));
+    dispatch(jobSlice.actions.clearAllErrors());
+  } catch (error) {
+    dispatch(
+      jobSlice.actions.failureForAllJobs(
+        error.response?.data?.message || "Failed to load jobs."
+      )
+    );
+  }
+};
+
+
 
 export const fetchSingleJob = (jobId) => async (dispatch) => {
   dispatch(jobSlice.actions.requestForSingleJob());
